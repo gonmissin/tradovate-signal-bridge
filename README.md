@@ -2,23 +2,6 @@
 
 Python tooling that logs into **Tradovate** (browser capture → JWT), sends **TradingView demo bridge** market orders, optionally attaches **Tradovate v1** stop/limit brackets, and runs a small **background watcher** (break-even / TP cleanup).
 
-**Suggested names for your GitHub repo or folder**
-
-| Style | Example |
-|--------|---------|
-| Short | `tradovate-tv-client` |
-| Descriptive | `tradovate-tradingview-webhook` |
-| Signal-focused | `tradovate-signal-bridge` |
-
-Clone into a path **without spaces** (fewer shell and tooling issues), e.g.:
-
-```bash
-git clone https://github.com/<you>/tradovate-tv-client.git
-cd tradovate-tv-client
-```
-
----
-
 ## What it does
 
 - **`main.py`** — First-run wizard, writes `assets/config.json`, **market test** (optional auto-flatten below).
