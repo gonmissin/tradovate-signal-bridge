@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Signal → Execution flow | Tradovate Client</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg0: #0c0f14;
+      --bg1: #121826;
+      --bg2: #1a2235;
+      --line: #2d3a52;
+      --text: #e8edf5;
+      --muted: #8b9cb8;
+      --accent: #3ee8c8;
+      --accent2: #6b8cff;
+      --warn: #ffb84d;
+      --danger: #ff6b7a;
+      --ok: #5ce38a;
+      --shadow: 0 20px 50px rgba(0,0,0,.45);
+      --r: 14px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: radial-gradient(1200px 800px at 10% -10%, #1a2840 0%, transparent 55%),
+        radial-gradient(900px 600px at 100% 0%, #142818 0%, transparent 50%),
+        var(--bg0);
+      color: var(--text);
+      line-height: 1.55;
+    }
+    header {
+      padding: 2.5rem 1.5rem 1rem;
+      text-align: center;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, var(--bg1) 0%, transparent);
+    }
+    header h1 {
+      margin: 0 0 .5rem;
+      font-size: clamp(1.5rem, 4vw, 2.1rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    header p {
+      margin: 0 auto;
+      max-width: 42rem;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    .hint {
+      margin-top: 1rem;
+      font-family: "JetBrains Mono", monospace;
+      font-size: .78rem;
+      color: var(--accent);
+      opacity: .9;
+    }
+    main { max-width: 1100px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+    .chart-wrap {
+      background: var(--bg1);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      padding: 1.5rem 1rem 2rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 2.5rem;
+      overflow-x: auto;
+    }
+    .chart-wrap h2 {
+      margin: 0 0 1.25rem;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--muted);
+      text-align: center;
+    }
+    svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+    svg a { cursor: pointer; outline: none; }
+    svg a:focus .node-rect { stroke: var(--accent); stroke-width: 2.5; }
+    .node-rect { transition: stroke .2s, filter .2s; }
+    svg a:hover .node-rect {
+      stroke: var(--accent);
+      filter: drop-shadow(0 0 12px rgba(62, 232, 200, .35));
+    }
+    .node-title { font-family: "DM Sans", sans-serif; font-weight: 600; font-size: 13px; fill: var(--text); }
+    .node-sub { font-family: "JetBrains Mono", monospace; font-size: 9px; fill: var(--muted); }
+    .arrow { stroke: var(--line); stroke-width: 2; fill: none; marker-end: url(#m); }
+    .flow-label { font-size: 9px; fill: var(--muted); font-family: "JetBrains Mono", monospace; }
+    .lanes { display: grid; gap: 1rem; }
+    @media (min-width: 900px) { .lanes { grid-template-columns: 1fr 1fr; } }
+    article {
+      background: var(--bg1);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      padding: 1.35rem 1.5rem;
+      scroll-margin-top: 1rem;
+      transition: border-color .25s, box-shadow .25s;
+    }
+    article.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(62, 232, 200, .2), var(--shadow);
+    }
+    article h3 {
+      margin: 0 0 .75rem;
+      font-size: 1.05rem;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+    article h3 span.tag {
+      font-family: "JetBrains Mono", monospace;
+      font-size: .65rem;
+      font-weight: 500;
+      padding: .2rem .45rem;
+      border-radius: 6px;
+      background: var(--bg2);
+      color: var(--accent);
+      border: 1px solid var(--line);
+    }
+    article p { margin: 0 0 .65rem; color: var(--muted); font-size: .92rem; }
+    article ul { margin: 0; padding-left: 1.2rem; color: var(--muted); font-size: .88rem; }
+    article li { margin-bottom: .35rem; }
+    code {
+      font-family: "JetBrains Mono", monospace;
+      font-size: .82em;
+      background: var(--bg2);
+      padding: .1em .35em;
+      border-radius: 4px;
+      color: var(--warn);
+    }
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-size: .8rem;
+      border-top: 1px solid var(--line);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Signal → execution → watch</h1>
+    <p>Interactive map of the Tradovate client: webhook, TV market, v1 brackets, and the 5-second maintenance loop. Click any step to jump to details.</p>
+    <p class="hint">Tip: Tab through nodes for focus · Print (Ctrl+P) to export a PDF from the browser</p>
+  </header>
+  <main>
+    <div class="chart-wrap">
+      <h2>Flowchart</h2>
+      <svg viewBox="0 0 720 920" width="720" height="920" aria-label="Signal process flowchart">
+        <defs>
+          <marker id="m" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 z" fill="#4a5a78" />
+          </marker>
+          <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#1e2d45" />
+            <stop offset="100%" stop-color="#152238" />
+          </linearGradient>
+        </defs>
+
+        <a href="#s-json" data-target="s-json" class="flow-node" aria-label="Incoming JSON">
+          <rect class="node-rect" x="210" y="16" width="300" height="56" rx="12" fill="url(#g1)" stroke="#3ee8c8" stroke-width="1.2" />
+          <text class="node-title" x="360" y="42" text-anchor="middle">POST /webhook · JSON signal</text>
+          <text class="node-sub" x="360" y="58" text-anchor="middle">app.py</text>
+        </a>
+        <path class="arrow" d="M360 72 L360 96" />
+        <a href="#s-filter" data-target="s-filter">
+          <rect class="node-rect" x="230" y="96" width="260" height="50" rx="12" fill="url(#g1)" stroke="#6b8cff" stroke-width="1.2" />
+          <text class="node-title" x="360" y="124" text-anchor="middle">Filter &amp; map params</text>
+          <text class="node-sub" x="360" y="138" text-anchor="middle">ENTRY · direction · instruments · placeholder bid/ask</text>
+        </a>
+        <path class="arrow" d="M360 146 L360 168" />
+        <a href="#s-auth" data-target="s-auth">
+          <rect class="node-rect" x="240" y="168" width="240" height="48" rx="12" fill="url(#g1)" stroke="#6b8cff" stroke-width="1.2" />
+          <text class="node-title" x="360" y="196" text-anchor="middle">Auth (cached JWT)</text>
+          <text class="node-sub" x="360" y="210" text-anchor="middle">modules/auth.py · v1 demo host</text>
+        </a>
+        <path class="arrow" d="M360 216 L360 238" />
+        <a href="#s-market" data-target="s-market">
+          <rect class="node-rect" x="200" y="238" width="320" height="56" rx="12" fill="url(#g1)" stroke="#3ee8c8" stroke-width="1.2" />
+          <text class="node-title" x="360" y="266" text-anchor="middle">TV market order</text>
+          <text class="node-sub" x="360" y="282" text-anchor="middle">tv-demo …/accounts/{tv}/orders · type=market</text>
+        </a>
+        <path class="arrow" d="M360 294 L360 318" />
+        <a href="#s-bracket" data-target="s-bracket">
+          <rect class="node-rect" x="190" y="318" width="340" height="62" rx="12" fill="url(#g1)" stroke="#ffb84d" stroke-width="1.2" />
+          <text class="node-title" x="360" y="348" text-anchor="middle">v1 brackets · SL + TP (1 or 2)</text>
+          <text class="node-sub" x="360" y="364" text-anchor="middle">POST /v1/order/placeorder · modules/orders.py</text>
+        </a>
+        <path class="arrow" d="M360 380 L360 404" />
+        <a href="#s-register" data-target="s-register">
+          <rect class="node-rect" x="210" y="404" width="300" height="52" rx="12" fill="url(#g1)" stroke="#5ce38a" stroke-width="1.2" />
+          <text class="node-title" x="360" y="432" text-anchor="middle">Register order ids</text>
+          <text class="node-sub" x="360" y="446" text-anchor="middle">TradeWatchManager · trade_watch.py</text>
+        </a>
+        <path class="arrow" d="M360 456 L360 480" />
+        <a href="#s-loop" data-target="s-loop">
+          <rect class="node-rect" x="170" y="480" width="380" height="56" rx="12" fill="url(#g1)" stroke="#ff6b7a" stroke-width="1.2" />
+          <text class="node-title" x="360" y="508" text-anchor="middle">Every 5s · GET /v1/order/list</text>
+          <text class="node-sub" x="360" y="524" text-anchor="middle">Background thread (daemon)</text>
+        </a>
+
+        <text class="flow-label" x="360" y="552" text-anchor="middle">outcomes (same loop)</text>
+
+        <a href="#s-tp1" data-target="s-tp1">
+          <rect class="node-rect" x="40" y="568" width="200" height="72" rx="12" fill="url(#g1)" stroke="#3ee8c8" stroke-width="1.2" />
+          <text class="node-title" x="140" y="598" text-anchor="middle">TP1 filled</text>
+          <text class="node-sub" x="140" y="614" text-anchor="middle">cancel stop</text>
+          <text class="node-sub" x="140" y="628" text-anchor="middle">runner → BE stop @ entry</text>
+        </a>
+        <a href="#s-sl" data-target="s-sl">
+          <rect class="node-rect" x="260" y="568" width="200" height="72" rx="12" fill="url(#g1)" stroke="#ff6b7a" stroke-width="1.2" />
+          <text class="node-title" x="360" y="598" text-anchor="middle">Stop filled</text>
+          <text class="node-sub" x="360" y="614" text-anchor="middle">before BE → cancel TP1+TP2</text>
+          <text class="node-sub" x="360" y="628" text-anchor="middle">after BE → cancel TP2</text>
+        </a>
+        <a href="#s-tp2" data-target="s-tp2">
+          <rect class="node-rect" x="480" y="568" width="200" height="72" rx="12" fill="url(#g1)" stroke="#5ce38a" stroke-width="1.2" />
+          <text class="node-title" x="580" y="598" text-anchor="middle">TP2 filled</text>
+          <text class="node-sub" x="580" y="614" text-anchor="middle">cancel working stop</text>
+        </a>
+
+        <path class="arrow" d="M360 536 L360 556 L140 556 L140 568" />
+        <path class="arrow" d="M360 556 L360 568" />
+        <path class="arrow" d="M360 556 L580 556 L580 568" />
+
+        <a href="#s-files" data-target="s-files">
+          <rect class="node-rect" x="140" y="688" width="440" height="56" rx="12" fill="url(#g1)" stroke="#6b8cff" stroke-width="1.2" />
+          <text class="node-title" x="360" y="716" text-anchor="middle">Config: assets/config.json only</text>
+          <text class="node-sub" x="360" y="732" text-anchor="middle">connection · order_qty · instruments</text>
+        </a>
+        <path class="arrow" d="M360 660 L360 688" />
+        <path class="arrow" d="M140 604 Q 140 646 360 660 Q 580 646 580 604" fill="none" stroke="#2d3a52" stroke-dasharray="6 4" />
+
+        <a href="#s-health" data-target="s-health">
+          <rect class="node-rect" x="235" y="772" width="250" height="48" rx="12" fill="url(#g1)" stroke="#4a5a78" stroke-width="1" />
+          <text class="node-title" x="360" y="800" text-anchor="middle">GET /health · watcher arms on first request</text>
+        </a>
+        <path class="arrow" d="M360 744 L360 772" />
+      </svg>
+    </div>
+
+    <div class="lanes">
+      <article id="s-json">
+        <h3><span class="tag">01</span> Webhook payload</h3>
+        <p>Flask accepts JSON on <code>/webhook</code>. Only <code>action: "ENTRY"</code> is executed. Direction maps to buy/sell; instrument selects TV + optional v1 symbol via config.</p>
+        <ul>
+          <li>Files: <code>app.py</code> → <code>signal_to_execution_params</code></li>
+          <li>Skip path when <code>regimeSuppressed</code> and <code>order.skip_when_regime_suppressed</code> is true</li>
+        </ul>
+      </article>
+      <article id="s-filter">
+        <h3><span class="tag">02</span> Params &amp; sizes</h3>
+        <p>Stop and TP prices are resolved from the body and nested <code>appLevels</code>. Contract sizes come from <code>assets/config.json</code> (<code>order_qty</code>, <code>tp1_qty</code>, <code>tp2_qty</code>).</p>
+        <ul>
+          <li>Two TPs require <code>order.place_two_tps</code> and <code>tp1_qty</code> + <code>tp2_qty</code> = <code>order_qty</code></li>
+          <li><code>entry_price</code> for BE = ask (buy) or bid (sell) at signal time</li>
+        </ul>
+      </article>
+      <article id="s-auth">
+        <h3><span class="tag">03</span> Authentication</h3>
+        <p>JWT is obtained from Tradovate demo <code>/auth/accesstokenrequest</code>, cached ~80 minutes. Same token is used for v1 REST and the TV demo bridge headers.</p>
+        <ul>
+          <li><code>modules/auth.py</code></li>
+          <li>Account row from <code>/account/list</code> (cached) for v1 <code>accountId</code> / <code>accountSpec</code></li>
+        </ul>
+      </article>
+      <article id="s-market">
+        <h3><span class="tag">04</span> Market execution</h3>
+        <p>TradingView-style form POST to <code>tv-demo.tradovateapi.com/accounts/{tv_account}/orders</code> with <code>type=market</code> and static bid/ask from <code>TV_BRIDGE_BID_ASK</code> in <code>client_config.py</code>.</p>
+        <ul>
+          <li><code>Orders._tv_market_order</code> in <code>modules/orders.py</code></li>
+        </ul>
+      </article>
+      <article id="s-bracket">
+        <h3><span class="tag">05</span> Stops &amp; targets</h3>
+        <p>After a short fill wait, v1 <code>/order/placeorder</code> submits stop and limit leg(s). Responses should expose <code>orderId</code> for the watcher.</p>
+        <ul>
+          <li>Single TP: full <code>order_qty</code> on one limit</li>
+          <li>Dual TP: split limits + shared initial stop on full size</li>
+        </ul>
+      </article>
+      <article id="s-register">
+        <h3><span class="tag">06</span> Watcher registration</h3>
+        <p>Bracket response JSON is parsed for SL/TP order ids. If parsing fails, log and skip — no background management for that trade.</p>
+        <ul>
+          <li><code>modules/trade_watch.py</code> · <code>register_brackets</code></li>
+        </ul>
+      </article>
+      <article id="s-loop">
+        <h3><span class="tag">07</span> 5-second poll</h3>
+        <p>Daemon thread wakes every 5 seconds, calls <code>GET /v1/order/list</code>, matches <code>ordStatus</code> (Filled / Completed), then applies cancel/replace rules via <code>POST /order/cancelorder</code> and optional new stop.</p>
+      </article>
+      <article id="s-tp1">
+        <h3><span class="tag">08a</span> TP1 hit</h3>
+        <p>Cancel working stop. If <code>tp2_qty &gt; 0</code>, place breakeven stop for runner size at <code>entry_price</code>. Single-TP: cancel stop and retire watch.</p>
+      </article>
+      <article id="s-sl">
+        <h3><span class="tag">08b</span> Stop hit</h3>
+        <p><strong>Before BE move:</strong> cancel TP1 and TP2. <strong>After BE move:</strong> cancel TP2 only (flat on scratch / runner stopped at entry).</p>
+      </article>
+      <article id="s-tp2">
+        <h3><span class="tag">08c</span> TP2 hit</h3>
+        <p>Target reached on runner — cancel any working stop so nothing is left dangling.</p>
+      </article>
+      <article id="s-files">
+        <h3><span class="tag">09</span> Configuration files</h3>
+        <p><code>assets/config.json</code> is the only config file: <code>connection</code> (login, <code>tv_account</code>) and <code>order</code> (sizes, instruments, <code>place_two_tps</code>, <code>skip_when_regime_suppressed</code>). TV bridge bid/ask placeholders live in <code>modules/client_config.py</code> (<code>TV_BRIDGE_BID_ASK</code>).</p>
+      </article>
+      <article id="s-health">
+        <h3><span class="tag">10</span> Lifecycle</h3>
+        <p>Any first HTTP request triggers <code>_ensure_trade_watch()</code> so the daemon starts before or after the first trade. Use <code>GET /health</code> for uptime checks.</p>
+      </article>
+    </div>
+  </main>
+  <footer>
+    Tradovate Client · docs/signal-flow.html · see SETUP.md for install and operations
+  </footer>
+  <script>
+    (function () {
+      var nodes = document.querySelectorAll("a.flow-node, svg a[data-target]");
+      var articles = document.querySelectorAll("article[id]");
+      function clearActive() {
+        articles.forEach(function (el) { el.classList.remove("active"); });
+      }
+      function highlight(id) {
+        clearActive();
+        var t = document.getElementById(id);
+        if (t) {
+          t.classList.add("active");
+          t.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      }
+      nodes.forEach(function (a) {
+        a.addEventListener("click", function (e) {
+          var id = a.getAttribute("data-target");
+          if (id) {
+            highlight(id);
+          }
+        });
+      });
+      window.addEventListener("hashchange", function () {
+        var h = (location.hash || "").slice(1);
+        if (h) highlight(h);
+      });
+      if (location.hash) highlight(location.hash.slice(1));
+    })();
+  </script>
+</body>
+</html>

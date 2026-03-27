@@ -1,0 +1,31 @@
+{
+  "developer_mode": false,
+  "connection": {
+    "tv_account": "D45219551",
+    "username": "MFFUofBOSnWThA",
+    "password": "8=Sc6^m$6WF8ixG=.",
+    "v1_account_id": null,
+    "v1_account_spec": ""
+  },
+  "order": {
+    "quote_family": "nq",
+    "side": "buy",
+    "order_qty": 1,
+    "tp1_qty": 1,
+    "tp2_qty": 0,
+    "fill_wait_seconds": 1.0,
+    "instruments": {
+      "nq": {
+        "tv": "MNQM6",
+        "v1": ""
+      },
+      "gc": {
+        "tv": "MGCJ6",
+        "v1": ""
+      }
+    },
+    "place_two_tps": true,
+    "skip_when_regime_suppressed": false,
+    "test_auto_flatten_seconds": 5
+  }
+}
